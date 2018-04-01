@@ -20,6 +20,7 @@ pub mod widget;
 
 fn build_actions(app: gtk::Application,
                  window: gtk::ApplicationWindow,
+                 clipboard: gtk::Clipboard,
                  glarea: gtk::GLArea,
                  state: Rc<RefCell<Option<widget::State>>>) {
     let about_action = SimpleAction::new("HelpAbout", None);
@@ -35,6 +36,19 @@ fn build_actions(app: gtk::Application,
         about.show();
     }));
     app.add_action(&about_action);
+
+    let paste_action = SimpleAction::new("Paste", None);
+    paste_action.connect_activate(clone!(glarea, state => move |_, _| {
+        if let Some(text) = clipboard.wait_for_text() {
+            let mut state = state.borrow_mut();
+            if let Some(ref mut state) = *state {
+                state.event_queue.push(widget::Event::StrInput(text));
+            }
+            glarea.queue_draw();
+        }
+    }));
+    window.add_action(&paste_action);
+    app.set_accels_for_action("win.Paste", &["<Control><Shift>v", "<Shift>Insert"]);
 
     let font_decr_action = SimpleAction::new("FontDecrease", None);
     font_decr_action.connect_activate(clone!(glarea, state => move |_, _| {
@@ -96,6 +110,12 @@ fn build_header_bar() -> gtk::HeaderBar {
     font_incr_btn.set_action_name("win.FontIncrease");
     header_bar.pack_start(&font_incr_btn);
 
+    let paste_btn = gtk::Button::new_from_icon_name("edit-paste-symbolic", gtk::IconSize::SmallToolbar.into());
+    paste_btn.set_can_focus(false);
+    paste_btn.set_tooltip_text("Paste from clipboard");
+    paste_btn.set_action_name("win.Paste");
+    header_bar.pack_end(&paste_btn);
+
     header_bar.set_show_close_button(true);
     header_bar
 }
@@ -112,11 +132,12 @@ fn build_ui(app: &gtk::Application) {
         Inhibit(false)
     }));
 
+    let clipboard = gtk::Clipboard::get(&gdk::Atom::intern("CLIPBOARD"));
     let header_bar = build_header_bar();
 
     let (glarea, state) = widget::alacritty_widget(header_bar.clone());
 
-    build_actions(app.clone(), window.clone(), glarea.clone(), state.clone());
+    build_actions(app.clone(), window.clone(), clipboard, glarea.clone(), state.clone());
 
     app.set_app_menu(Some(&build_main_menu()));
     window.set_titlebar(Some(&header_bar));
