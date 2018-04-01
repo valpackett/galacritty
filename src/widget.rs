@@ -60,7 +60,7 @@ pub struct State {
 /// Creates a GLArea that runs an Alacritty terminal emulator.
 ///
 /// Eventually should be a GObject subclass, usable outside of Rust.
-pub fn alacritty_widget() -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
+pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
     let glarea = gtk::GLArea::new();
 
     let state: Rc<RefCell<Option<State>>> = Rc::new(RefCell::new(None));
@@ -143,6 +143,9 @@ pub fn alacritty_widget() -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
                         terminal.reset_font_size();
                     }
                 }
+            }
+            if let Some(title) = terminal.get_next_title() {
+                header_bar.set_title(&*title);
             }
             if terminal.needs_draw() {
                 state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty]);

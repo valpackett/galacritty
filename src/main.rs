@@ -47,9 +47,7 @@ fn build_main_menu() -> Menu {
     menu
 }
 
-fn build_header_bar(glarea: gtk::GLArea, state: Rc<RefCell<Option<widget::State>>>) -> gtk::HeaderBar {
-    let header_bar = gtk::HeaderBar::new();
-
+fn configure_header_bar(header_bar: &mut gtk::HeaderBar, glarea: gtk::GLArea, state: Rc<RefCell<Option<widget::State>>>) {
     let font_decr_btn = gtk::Button::new_from_icon_name("list-remove-symbolic", gtk::IconSize::SmallToolbar.into());
     font_decr_btn.set_can_focus(false);
     font_decr_btn.set_tooltip_text("Decrease font size");
@@ -75,7 +73,6 @@ fn build_header_bar(glarea: gtk::GLArea, state: Rc<RefCell<Option<widget::State>
     header_bar.pack_start(&font_incr_btn);
 
     header_bar.set_show_close_button(true);
-    header_bar
 }
 
 fn build_ui(app: &gtk::Application) {
@@ -90,11 +87,13 @@ fn build_ui(app: &gtk::Application) {
         Inhibit(false)
     }));
 
-    let (glarea, state) = widget::alacritty_widget();
+    let mut header_bar = gtk::HeaderBar::new();
+    let (glarea, state) = widget::alacritty_widget(header_bar.clone());
+    configure_header_bar(&mut header_bar, glarea.clone(), state.clone());
 
     app.add_action(&build_about_action(window.clone()));
     app.set_app_menu(Some(&build_main_menu()));
-    window.set_titlebar(Some(&build_header_bar(glarea.clone(), state.clone())));
+    window.set_titlebar(Some(&header_bar));
 
     window.add(&glarea);
 
