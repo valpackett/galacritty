@@ -4,7 +4,6 @@ extern crate gio;
 extern crate gdk;
 extern crate epoxy;
 extern crate shared_library;
-extern crate glutin;
 extern crate alacritty;
 
 use std::env::args;

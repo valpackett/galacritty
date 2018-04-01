@@ -18,5 +18,4 @@ gdk = "0.8"
 gtk = { version = "0.4", features = ["v3_16"] }
 epoxy = { path = "../../mjkoo/epoxy-rs" }
 shared_library = "0"
-glutin = "0"
 alacritty = { path = "../../jwilm/alacritty" }

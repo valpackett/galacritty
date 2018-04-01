@@ -1,5 +1,3 @@
-
-
 // from gtk examples
 macro_rules! clone {
     (@param _) => ( _ );

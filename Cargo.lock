@@ -434,7 +434,6 @@ dependencies = [
  "gdk 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gio 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "shared_library 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
