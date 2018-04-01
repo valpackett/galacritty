@@ -19,9 +19,12 @@ use gtk::prelude::*;
 pub mod util; // order matters for macros
 pub mod widget;
 
-fn build_about_action(window: gtk::ApplicationWindow) -> SimpleAction {
+fn build_actions(app: gtk::Application,
+                 window: gtk::ApplicationWindow,
+                 glarea: gtk::GLArea,
+                 state: Rc<RefCell<Option<widget::State>>>) {
     let about_action = SimpleAction::new("HelpAbout", None);
-    about_action.connect_activate(move |_, _| {
+    about_action.connect_activate(clone!(window => move |_, _| {
         let about = gtk::AboutDialog::new();
         about.set_transient_for(Some(&window));
         about.set_program_name("Galacritty");
@@ -31,9 +34,41 @@ fn build_about_action(window: gtk::ApplicationWindow) -> SimpleAction {
         about.set_comments(env!("CARGO_PKG_DESCRIPTION"));
         about.connect_response(|about, _| about.destroy());
         about.show();
+    }));
+    app.add_action(&about_action);
+
+    let font_decr_action = SimpleAction::new("FontDecrease", None);
+    font_decr_action.connect_activate(clone!(glarea, state => move |_, _| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(widget::Event::ChangeFontSize(-1));
+        }
+        glarea.queue_draw();
+    }));
+    window.add_action(&font_decr_action);
+    app.set_accels_for_action("win.FontDecrease", &["<Control>minus", "<Control>KP_Subtract"]);
+
+    let font_incr_action = SimpleAction::new("FontIncrease", None);
+    font_incr_action.connect_activate(clone!(glarea, state => move |_, _| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(widget::Event::ChangeFontSize(1));
+        }
+        glarea.queue_draw();
+    }));
+    window.add_action(&font_incr_action);
+    app.set_accels_for_action("win.FontIncrease", &["<Control>equal", "<Control>plus", "<Control>KP_Add"]);
+
+    let font_reset_action = SimpleAction::new("FontReset", None);
+    font_reset_action.connect_activate(move |_, _| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(widget::Event::ResetFontSize);
+        }
+        glarea.queue_draw();
     });
-    about_action.set_enabled(true);
-    about_action
+    window.add_action(&font_reset_action);
+    app.set_accels_for_action("win.FontReset", &["<Control>0", "<Control>KP_0"]);
 }
 
 fn build_main_menu() -> Menu {
@@ -47,32 +82,23 @@ fn build_main_menu() -> Menu {
     menu
 }
 
-fn configure_header_bar(header_bar: &mut gtk::HeaderBar, glarea: gtk::GLArea, state: Rc<RefCell<Option<widget::State>>>) {
-    let font_decr_btn = gtk::Button::new_from_icon_name("list-remove-symbolic", gtk::IconSize::SmallToolbar.into());
+fn build_header_bar() -> gtk::HeaderBar {
+    let header_bar = gtk::HeaderBar::new();
+
+    let font_decr_btn = gtk::Button::new_from_icon_name("zoom-out-symbolic", gtk::IconSize::SmallToolbar.into());
     font_decr_btn.set_can_focus(false);
     font_decr_btn.set_tooltip_text("Decrease font size");
-    font_decr_btn.connect_clicked(clone!(state, glarea => move |_| {
-        let mut state = state.borrow_mut();
-        if let Some(ref mut state) = *state {
-            state.event_queue.push(widget::Event::ChangeFontSize(-1));
-        }
-        glarea.queue_draw();
-    }));
+    font_decr_btn.set_action_name("win.FontDecrease");
     header_bar.pack_start(&font_decr_btn);
 
-    let font_incr_btn = gtk::Button::new_from_icon_name("list-add-symbolic", gtk::IconSize::SmallToolbar.into());
+    let font_incr_btn = gtk::Button::new_from_icon_name("zoom-in-symbolic", gtk::IconSize::SmallToolbar.into());
     font_incr_btn.set_can_focus(false);
     font_incr_btn.set_tooltip_text("Increase font size");
-    font_incr_btn.connect_clicked(move |_| {
-        let mut state = state.borrow_mut();
-        if let Some(ref mut state) = *state {
-            state.event_queue.push(widget::Event::ChangeFontSize(1));
-        }
-        glarea.queue_draw();
-    });
+    font_incr_btn.set_action_name("win.FontIncrease");
     header_bar.pack_start(&font_incr_btn);
 
     header_bar.set_show_close_button(true);
+    header_bar
 }
 
 fn build_ui(app: &gtk::Application) {
@@ -87,16 +113,15 @@ fn build_ui(app: &gtk::Application) {
         Inhibit(false)
     }));
 
-    let mut header_bar = gtk::HeaderBar::new();
-    let (glarea, state) = widget::alacritty_widget(header_bar.clone());
-    configure_header_bar(&mut header_bar, glarea.clone(), state.clone());
+    let header_bar = build_header_bar();
 
-    app.add_action(&build_about_action(window.clone()));
+    let (glarea, state) = widget::alacritty_widget(header_bar.clone());
+
+    build_actions(app.clone(), window.clone(), glarea.clone(), state.clone());
+
     app.set_app_menu(Some(&build_main_menu()));
     window.set_titlebar(Some(&header_bar));
-
     window.add(&glarea);
-
     window.show_all();
 }
 
