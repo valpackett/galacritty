@@ -1,0 +1,22 @@
+[package]
+name = "galacritty"
+version = "0.0.0"
+authors = [ "Greg V <greg@unrelenting.technology>" ]
+keywords = [ "Terminal", "Console", "GTK" ]
+description = "GTK 3 terminal emulator based on the GPU-accelerated Alacritty core"
+license = "Unlicense"
+readme = "README.md"
+homepage = "https://github.com/myfreeweb/galacritty"
+repository = "https://github.com/myfreeweb/galacritty"
+
+[dependencies]
+log = "0.4"
+env_logger = "0.5"
+glib = "0.5"
+gio = "0.4"
+gdk = "0.8"
+gtk = { version = "0.4", features = ["v3_16"] }
+epoxy = { path = "../../mjkoo/epoxy-rs" }
+shared_library = "0"
+glutin = "0"
+alacritty = { path = "../../jwilm/alacritty" }
