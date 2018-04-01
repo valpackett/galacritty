@@ -8,15 +8,78 @@ extern crate glutin;
 extern crate alacritty;
 
 use std::env::args;
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use gio::prelude::*;
+use gio::{Menu, MenuExt, MenuItem, SimpleAction};
 use gtk::prelude::*;
 
 #[macro_use]
 pub mod util; // order matters for macros
 pub mod widget;
 
-fn build_ui(application: &gtk::Application) {
-    let window = gtk::ApplicationWindow::new(application);
+fn build_about_action(window: gtk::ApplicationWindow) -> SimpleAction {
+    let about_action = SimpleAction::new("HelpAbout", None);
+    about_action.connect_activate(move |_, _| {
+        let about = gtk::AboutDialog::new();
+        about.set_transient_for(Some(&window));
+        about.set_program_name("Galacritty");
+        about.set_version(env!("CARGO_PKG_VERSION"));
+        about.set_logo_icon_name("technology.unrelenting.galacritty");
+        about.set_authors(&[env!("CARGO_PKG_AUTHORS")]);
+        about.set_comments(env!("CARGO_PKG_DESCRIPTION"));
+        about.connect_response(|about, _| about.destroy());
+        about.show();
+    });
+    about_action.set_enabled(true);
+    about_action
+}
+
+fn build_main_menu() -> Menu {
+    let menu = Menu::new();
+
+    let section = Menu::new();
+    section.append_item(&MenuItem::new("About", "app.HelpAbout"));
+    menu.append_section(None, &section);
+
+    menu.freeze();
+    menu
+}
+
+fn build_header_bar(glarea: gtk::GLArea, state: Rc<RefCell<Option<widget::State>>>) -> gtk::HeaderBar {
+    let header_bar = gtk::HeaderBar::new();
+
+    let font_decr_btn = gtk::Button::new_from_icon_name("list-remove-symbolic", gtk::IconSize::SmallToolbar.into());
+    font_decr_btn.set_can_focus(false);
+    font_decr_btn.set_tooltip_text("Decrease font size");
+    font_decr_btn.connect_clicked(clone!(state, glarea => move |_| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(widget::Event::ChangeFontSize(-1));
+        }
+        glarea.queue_draw();
+    }));
+    header_bar.pack_start(&font_decr_btn);
+
+    let font_incr_btn = gtk::Button::new_from_icon_name("list-add-symbolic", gtk::IconSize::SmallToolbar.into());
+    font_incr_btn.set_can_focus(false);
+    font_incr_btn.set_tooltip_text("Increase font size");
+    font_incr_btn.connect_clicked(move |_| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(widget::Event::ChangeFontSize(1));
+        }
+        glarea.queue_draw();
+    });
+    header_bar.pack_start(&font_incr_btn);
+
+    header_bar.set_show_close_button(true);
+    header_bar
+}
+
+fn build_ui(app: &gtk::Application) {
+    let window = gtk::ApplicationWindow::new(app);
 
     window.set_title("Galacritty");
     window.set_border_width(0);
@@ -27,8 +90,13 @@ fn build_ui(application: &gtk::Application) {
         Inhibit(false)
     }));
 
-    let term = widget::alacritty_widget();
-    window.add(&term);
+    let (glarea, state) = widget::alacritty_widget();
+
+    app.add_action(&build_about_action(window.clone()));
+    app.set_app_menu(Some(&build_main_menu()));
+    window.set_titlebar(Some(&build_header_bar(glarea.clone(), state.clone())));
+
+    window.add(&glarea);
 
     window.show_all();
 }

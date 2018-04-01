@@ -1,4 +1,4 @@
-use std::{ptr, mem};
+use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::cell::RefCell;
@@ -6,7 +6,6 @@ use std::cell::RefCell;
 
 use epoxy;
 use shared_library::dynamic_library::DynamicLibrary;
-use glutin; // should eventually disappear
 
 use glib;
 use gdk;
@@ -14,7 +13,6 @@ use gtk;
 use gtk::prelude::*;
 
 use alacritty::{cli, gl};
-use alacritty::event::{Processor, DummyWindowLoop};
 use alacritty::display::{Display, InitialSize};
 use alacritty::event_loop::{self, EventLoop, WindowNotifier};
 use alacritty::tty::{self, Pty};
@@ -25,6 +23,13 @@ use alacritty::config::Config;
 // TODO vec for multiple widgets
 thread_local!{
     static GLOBAL: RefCell<Option<gtk::GLArea>> = RefCell::new(None);
+}
+
+pub enum Event {
+    CharInput(char),
+    WindowResized(u32, u32),
+    ChangeFontSize(i8),
+    ResetFontSize,
 }
 
 struct Notifier;
@@ -43,20 +48,19 @@ impl WindowNotifier for Notifier {
     }
 }
 
-struct State {
+pub struct State {
     config: Config,
     display: Display,
     terminal: Arc<FairMutex<Term>>,
     pty: Pty,
-    processor: Processor<event_loop::Notifier>,
-    // io_thread: JoinHandle<(EventLoop<fs::File>, event_loop::State)>,
-    event_queue: Vec<glutin::Event>,
+    loop_notifier: event_loop::Notifier,
+    pub event_queue: Vec<Event>,
 }
 
 /// Creates a GLArea that runs an Alacritty terminal emulator.
 ///
 /// Eventually should be a GObject subclass, usable outside of Rust.
-pub fn alacritty_widget() -> gtk::GLArea {
+pub fn alacritty_widget() -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
     let glarea = gtk::GLArea::new();
 
     let state: Rc<RefCell<Option<State>>> = Rc::new(RefCell::new(None));
@@ -97,21 +101,12 @@ pub fn alacritty_widget() -> gtk::GLArea {
             options.ref_test,
         );
 
-        //let loop_tx = event_loop.channel();
-
-        let processor = Processor::new(
-            event_loop::Notifier(event_loop.channel()),
-            display.resize_channel(),
-            &options,
-            &config,
-            options.ref_test,
-            display.size().to_owned(),
-        );
-
+        let loop_notifier = event_loop::Notifier(event_loop.channel());
         let _io_thread = event_loop.spawn(None);
 
         *state = Some(State {
-            config, display, terminal, pty, processor, //io_thread,
+            config, display, terminal, pty,
+            loop_notifier,
             event_queue: Vec::new()
         });
     }));
@@ -124,10 +119,34 @@ pub fn alacritty_widget() -> gtk::GLArea {
     glarea.connect_render(clone!(state => move |_glarea, _glctx| {
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            let mut terminal = state.processor.process_events_push::<DummyWindowLoop>(&state.terminal, &mut state.event_queue, None);
+            let mut terminal = state.terminal.lock();
+            for event in state.event_queue.drain(..) {
+                match event {
+                    Event::CharInput(c) => {
+                        let len = c.len_utf8();
+                        let mut bytes = Vec::with_capacity(len);
+                        unsafe {
+                            bytes.set_len(len);
+                            c.encode_utf8(&mut bytes[..]);
+                        }
+                        use alacritty::event::Notify;
+                        state.loop_notifier.notify(bytes);
+                    },
+                    Event::WindowResized(w, h) => {
+                        state.display.resize_channel().send((w, h)).expect("send new size");
+                        terminal.dirty = true;
+                    },
+                    Event::ChangeFontSize(delta) => {
+                        terminal.change_font_size(delta);
+                    },
+                    Event::ResetFontSize => {
+                        terminal.reset_font_size();
+                    }
+                }
+            }
             if terminal.needs_draw() {
-                state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty, &mut state.processor]);
-                state.display.draw(terminal, &state.config, state.processor.selection.as_ref(), true);
+                state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty]);
+                state.display.draw(terminal, &state.config, None, true);
             }
         }
         Inhibit(false)
@@ -136,10 +155,7 @@ pub fn alacritty_widget() -> gtk::GLArea {
     glarea.connect_resize(clone!(state => move |glarea, w, h| {
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(glutin::Event::WindowEvent {
-                window_id: unsafe { mem::transmute::<(u64, u64), glutin::WindowId>((0, 0)) },
-                event: glutin::WindowEvent::Resized(w as u32, h as u32)
-            });
+            state.event_queue.push(Event::WindowResized(w as u32, h as u32));
         }
         glarea.queue_draw();
     }));
@@ -151,18 +167,7 @@ pub fn alacritty_widget() -> gtk::GLArea {
         println!("KEY {:?}", kv);
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(glutin::Event::WindowEvent {
-                window_id: unsafe { mem::transmute::<(u64, u64), glutin::WindowId>((0, 0)) },
-                event: /*glutin::WindowEvent::KeyboardInput {
-                    device_id: unsafe { mem::transmute::<u64, glutin::DeviceId>(0) },
-                    input: glutin::KeyboardInput {
-                        scancode: kv,
-                        state: glutin::ElementState::Pressed,
-                        virtual_keycode: Some(glutin::VirtualKeyCode::A),
-                        modifiers: glutin::ModifiersState::default()
-                    }
-                }*/ glutin::WindowEvent::ReceivedCharacter(kv as u8 as char)
-            });
+            state.event_queue.push(Event::CharInput(kv as u8 as char));
         }
         glarea.queue_draw();
         Inhibit(false)
@@ -171,10 +176,7 @@ pub fn alacritty_widget() -> gtk::GLArea {
     glarea.connect_property_scale_factor_notify(clone!(state => move |glarea| {
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(glutin::Event::WindowEvent {
-                window_id: unsafe { mem::transmute::<(u64, u64), glutin::WindowId>((0, 0)) },
-                event: glutin::WindowEvent::HiDPIFactorChanged(glarea.get_scale_factor() as f32)
-            });
+            // state.event_queue.push(Event::HiDPIFactorChanged(glarea.get_scale_factor() as f32));
         }
         glarea.queue_draw();
     }));
@@ -189,5 +191,5 @@ pub fn alacritty_widget() -> gtk::GLArea {
         *global.borrow_mut() = Some(glarea);
     }));
 
-    glarea
+    (glarea, state)
 }
