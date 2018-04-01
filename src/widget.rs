@@ -27,6 +27,7 @@ thread_local!{
 
 pub enum Event {
     CharInput(char),
+    StrInput(String),
     WindowResized(u32, u32),
     ChangeFontSize(i8),
     ResetFontSize,
@@ -132,6 +133,10 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
                         use alacritty::event::Notify;
                         state.loop_notifier.notify(bytes);
                     },
+                    Event::StrInput(s) => {
+                        use alacritty::event::Notify;
+                        state.loop_notifier.notify(s.as_bytes().to_vec());
+                    },
                     Event::WindowResized(w, h) => {
                         state.display.resize_channel().send((w, h)).expect("send new size");
                         terminal.dirty = true;
@@ -174,6 +179,22 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         }
         glarea.queue_draw();
         Inhibit(false)
+    }));
+
+    glarea.drag_dest_set(gtk::DestDefaults::ALL, &[], gdk::DragAction::COPY);
+    glarea.drag_dest_add_text_targets();
+    glarea.drag_dest_add_uri_targets();
+
+    glarea.connect_drag_data_received(clone!(state => move |_glarea, _dctx, _x, _y, data, _info, _time| {
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            let uris = data.get_uris();
+            if uris.len() > 0 {
+                state.event_queue.push(Event::StrInput(uris.iter().map(|u| u.trim().replace("file://", "")).collect::<Vec<_>>().join(" ")));
+            } else if let Some(text) = data.get_text() {
+                state.event_queue.push(Event::StrInput(text.replace("file://", "").trim().to_owned()));
+            }
+        }
     }));
 
     glarea.connect_property_scale_factor_notify(clone!(state => move |glarea| {
