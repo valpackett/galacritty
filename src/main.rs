@@ -5,6 +5,8 @@ extern crate gdk;
 extern crate epoxy;
 extern crate shared_library;
 extern crate alacritty;
+#[macro_use]
+extern crate log;
 
 use std::env::args;
 use std::rc::Rc;
@@ -133,14 +135,15 @@ fn build_ui(app: &gtk::Application) {
     }));
 
     let clipboard = gtk::Clipboard::get(&gdk::Atom::intern("CLIPBOARD"));
-    let header_bar = build_header_bar();
 
-    let (glarea, state) = widget::alacritty_widget(header_bar.clone());
+    let header_bar = build_header_bar();
+    window.set_titlebar(Some(&header_bar));
+
+    let (glarea, state) = widget::alacritty_widget(header_bar);
 
     build_actions(app.clone(), window.clone(), clipboard, glarea.clone(), state.clone());
 
     app.set_app_menu(Some(&build_main_menu()));
-    window.set_titlebar(Some(&header_bar));
     window.add(&glarea);
     window.show_all();
 }

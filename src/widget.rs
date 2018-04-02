@@ -17,7 +17,7 @@ use alacritty::display::{Display, InitialSize};
 use alacritty::event_loop::{self, EventLoop, WindowNotifier};
 use alacritty::tty::{self, Pty};
 use alacritty::sync::FairMutex;
-use alacritty::term::Term;
+use alacritty::term::{Term, SizeInfo};
 use alacritty::config::Config;
 
 // TODO vec for multiple widgets
@@ -64,10 +64,14 @@ pub struct State {
 pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
     let glarea = gtk::GLArea::new();
 
+    let im = gtk::IMMulticontext::new();
+    im.set_use_preedit(false);
+
     let state: Rc<RefCell<Option<State>>> = Rc::new(RefCell::new(None));
 
-    glarea.connect_realize(clone!(state => move |glarea| {
+    glarea.connect_realize(clone!(state, im => move |glarea| {
         let mut state = state.borrow_mut();
+        im.set_client_window(glarea.get_window().as_ref());
         glarea.make_current();
 
         epoxy::load_with(|s| {
@@ -117,7 +121,7 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         *state = None;
     }));
 
-    glarea.connect_render(clone!(state => move |_glarea, _glctx| {
+    glarea.connect_render(clone!(state, im => move |_glarea, _glctx| {
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
             let mut terminal = state.terminal.lock();
@@ -153,6 +157,11 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
                 header_bar.set_title(&*title);
             }
             if terminal.needs_draw() {
+                let (x, y) = state.display.current_xim_spot(&terminal);
+                let &SizeInfo { cell_width, cell_height, .. } = state.display.size();
+                im.set_cursor_location(&gtk::Rectangle {
+                    x: x.into(), y: y.into(), width: cell_width as i32, height: cell_height as i32
+                });
                 state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty]);
                 state.display.draw(terminal, &state.config, None, true);
             }
@@ -170,15 +179,32 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
 
     glarea.add_events(gdk::EventMask::KEY_PRESS_MASK.bits() as i32);
 
-    glarea.connect_key_press_event(clone!(state => move |glarea, event| {
+    glarea.connect_key_press_event(clone!(state, im => move |glarea, event| {
+        if im.filter_keypress(event) {
+            return Inhibit(true);
+        }
         let kv = event.get_keyval();
-        println!("KEY {:?}", kv);
+        trace!("non-IM input: keyval {:?} unicode {:?}", kv, gdk::keyval_to_unicode(kv));
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(Event::CharInput(kv as u8 as char));
+            state.event_queue.push(Event::CharInput(gdk::keyval_to_unicode(kv).unwrap_or(kv as u8 as char)));
         }
         glarea.queue_draw();
         Inhibit(false)
+    }));
+
+    glarea.connect_key_release_event(clone!(im => move |_glarea, event| {
+        let _ = im.filter_keypress(event);
+        Inhibit(true)
+    }));
+
+    im.connect_commit(clone!(glarea, state => move |_im, s| {
+        trace!("IM input: str {:?}", s);
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            state.event_queue.push(Event::StrInput(s.to_owned()));
+        }
+        glarea.queue_draw();
     }));
 
     glarea.drag_dest_set(gtk::DestDefaults::ALL, &[], gdk::DragAction::COPY);
@@ -206,6 +232,14 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
     }));
 
     glarea.set_can_focus(true);
+    glarea.connect_focus_in_event(clone!(im => move |_glarea, _event| {
+        im.focus_in();
+        Inhibit(false)
+    }));
+    glarea.connect_focus_out_event(clone!(im => move |_glarea, _event| {
+        im.focus_out();
+        Inhibit(false)
+    }));
     glarea.grab_focus();
 
     GLOBAL.with(clone!(glarea => move |global| {
