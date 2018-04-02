@@ -45,7 +45,7 @@ fn build_actions(app: gtk::Application,
             let mut state = state.borrow_mut();
             if let Some(ref mut state) = *state {
                 // TODO: bracketed paste support
-                state.event_queue.push(widget::Event::StrInput(text.replace("\r\n", "\r").replace("\n", "\r")));
+                state.event_queue.push(widget::Event::StringInput(text.replace("\r\n", "\r").replace("\n", "\r")));
             }
             glarea.queue_draw();
         }

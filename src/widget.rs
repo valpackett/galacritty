@@ -9,6 +9,7 @@ use shared_library::dynamic_library::DynamicLibrary;
 
 use glib;
 use gdk;
+use gdk::ModifierType as Mod;
 use gtk;
 use gtk::prelude::*;
 
@@ -25,9 +26,13 @@ thread_local!{
     static GLOBAL: RefCell<Option<gtk::GLArea>> = RefCell::new(None);
 }
 
+pub struct IsControlHeld(bool);
+
 pub enum Event {
-    CharInput(char),
-    StrInput(String),
+    Blank,
+    CharInput(char, IsControlHeld),
+    StringInput(String),
+    StrInput(&'static str),
     WindowResized(u32, u32),
     ChangeFontSize(i8),
     ResetFontSize,
@@ -127,17 +132,29 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
             let mut terminal = state.terminal.lock();
             for event in state.event_queue.drain(..) {
                 match event {
-                    Event::CharInput(c) => {
+                    Event::Blank => (),
+                    Event::CharInput(c, IsControlHeld(is_ctrl)) => {
                         let len = c.len_utf8();
                         let mut bytes = Vec::with_capacity(len);
                         unsafe {
                             bytes.set_len(len);
                             c.encode_utf8(&mut bytes[..]);
                         }
+                        if is_ctrl {
+                            for ch in bytes.iter_mut() {
+                                if *ch >= 0x40 && *ch < 0x80 {
+                                    *ch = *ch & !0x60;
+                                }
+                            }
+                        }
                         use alacritty::event::Notify;
                         state.loop_notifier.notify(bytes);
                     },
                     Event::StrInput(s) => {
+                        use alacritty::event::Notify;
+                        state.loop_notifier.notify(s.as_bytes().to_vec());
+                    },
+                    Event::StringInput(s) => {
                         use alacritty::event::Notify;
                         state.loop_notifier.notify(s.as_bytes().to_vec());
                     },
@@ -187,7 +204,101 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         trace!("non-IM input: keyval {:?} unicode {:?}", kv, gdk::keyval_to_unicode(kv));
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(Event::CharInput(gdk::keyval_to_unicode(kv).unwrap_or(kv as u8 as char)));
+            use gdk::enums::key::*;
+            let mods = event.get_state();
+            // TODO: make this dynamically configurable
+            #[allow(non_upper_case_globals)] // they're not mine, why complain here?!
+            state.event_queue.push(match kv {
+                Page_Up | KP_Page_Up if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[5;2~"),
+                Page_Up | KP_Page_Up if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[5;5~"),
+                Page_Up | KP_Page_Up => Event::StrInput("\x1b[5~"),
+                Page_Down | KP_Page_Down if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[6;2~"),
+                Page_Down | KP_Page_Down if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[6;5~"),
+                Page_Down | KP_Page_Down => Event::StrInput("\x1b[6~"),
+                Tab if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[Z"),
+                Insert => Event::StrInput("\x1b[2~"),
+                Delete | KP_Delete => Event::StrInput("\x1b[3~"),
+                Left | KP_Left if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2D"),
+                Left | KP_Left if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;3D"),
+                Left | KP_Left if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5D"),
+                Left | KP_Left => Event::StrInput("\x1b[D"),
+                Right | KP_Right if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2C"),
+                Right | KP_Right if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;3C"),
+                Right | KP_Right if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5C"),
+                Right | KP_Right => Event::StrInput("\x1b[C"),
+                Up | KP_Up if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2A"),
+                Up | KP_Up if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;3A"),
+                Up | KP_Up if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5A"),
+                Up | KP_Up => Event::StrInput("\x1b[A"),
+                Down | KP_Down if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2B"),
+                Down | KP_Down if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;3B"),
+                Down | KP_Down if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5B"),
+                Down | KP_Down => Event::StrInput("\x1b[B"),
+                F1 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2P"),
+                F1 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[1;3P"),
+                F1 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5P"),
+                F1 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;6P"),
+                F1 => Event::StrInput("\x1bOP"),
+                F2 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2Q"),
+                F2 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[1;3Q"),
+                F2 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5Q"),
+                F2 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;6Q"),
+                F2 => Event::StrInput("\x1bOQ"),
+                F3 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2R"),
+                F3 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[1;3R"),
+                F3 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5R"),
+                F3 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;6R"),
+                F3 => Event::StrInput("\x1bOR"),
+                F4 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[1;2S"),
+                F4 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[1;3S"),
+                F4 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[1;5S"),
+                F4 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[1;6S"),
+                F4 => Event::StrInput("\x1bOS"),
+                F5 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[15;2~"),
+                F5 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[15;3~"),
+                F5 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[15;5~"),
+                F5 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[15;6~"),
+                F5 => Event::StrInput("\x1b[15~"),
+                F6 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[17;2~"),
+                F6 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[17;3~"),
+                F6 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[17;5~"),
+                F6 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[17;6~"),
+                F6 => Event::StrInput("\x1b[17~"),
+                F7 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[18;2~"),
+                F7 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[18;3~"),
+                F7 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[18;5~"),
+                F7 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[18;6~"),
+                F7 => Event::StrInput("\x1b[18~"),
+                F8 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[19;2~"),
+                F8 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[19;3~"),
+                F8 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[19;5~"),
+                F8 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[19;6~"),
+                F8 => Event::StrInput("\x1b[19~"),
+                F9 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[20;2~"),
+                F9 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[20;3~"),
+                F9 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[20;5~"),
+                F9 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[20;6~"),
+                F9 => Event::StrInput("\x1b[20~"),
+                F10 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[21;2~"),
+                F10 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[21;3~"),
+                F10 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[21;5~"),
+                F10 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[21;6~"),
+                F10 => Event::StrInput("\x1b[21~"),
+                F11 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[23;2~"),
+                F11 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[23;3~"),
+                F11 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[23;5~"),
+                F11 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[23;6~"),
+                F11 => Event::StrInput("\x1b[23~"),
+                F12 if mods.contains(Mod::SHIFT_MASK) => Event::StrInput("\x1b[24;2~"),
+                F12 if mods.contains(Mod::SUPER_MASK) => Event::StrInput("\x1b[24;3~"),
+                F12 if mods.contains(Mod::CONTROL_MASK) => Event::StrInput("\x1b[24;5~"),
+                F12 if mods.contains(Mod::META_MASK) => Event::StrInput("\x1b[24;6~"),
+                F12 => Event::StrInput("\x1b[24~"),
+                Super_L | Super_R | Hyper_L | Hyper_R | Control_L | Control_R |
+                    Alt_L | Alt_R | Meta_L | Meta_R | Shift_L | Shift_R |
+                    Caps_Lock | Scroll_Lock | Shift_Lock | ModeLock => Event::Blank,
+                _ => Event::CharInput(gdk::keyval_to_unicode(kv).unwrap_or(kv as u8 as char), IsControlHeld(mods.contains(Mod::CONTROL_MASK))),
+            });
         }
         glarea.queue_draw();
         Inhibit(false)
@@ -202,7 +313,7 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         trace!("IM input: str {:?}", s);
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            state.event_queue.push(Event::StrInput(s.to_owned()));
+            state.event_queue.push(Event::StringInput(s.to_owned()));
         }
         glarea.queue_draw();
     }));
@@ -216,9 +327,9 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         if let Some(ref mut state) = *state {
             let uris = data.get_uris();
             if uris.len() > 0 {
-                state.event_queue.push(Event::StrInput(uris.iter().map(|u| u.trim().replace("file://", "")).collect::<Vec<_>>().join(" ")));
+                state.event_queue.push(Event::StringInput(uris.iter().map(|u| u.trim().replace("file://", "")).collect::<Vec<_>>().join(" ")));
             } else if let Some(text) = data.get_text() {
-                state.event_queue.push(Event::StrInput(text.replace("file://", "").trim().to_owned()));
+                state.event_queue.push(Event::StringInput(text.replace("file://", "").trim().to_owned()));
             }
         }
     }));
