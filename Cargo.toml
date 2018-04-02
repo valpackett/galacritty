@@ -16,6 +16,6 @@ glib = "0.5"
 gio = "0.4"
 gdk = "0.8"
 gtk = { version = "0.4", features = ["v3_16"] }
-epoxy = { path = "../../mjkoo/epoxy-rs" }
+epoxy = "0.0.4"
 shared_library = "0"
 alacritty = { path = "../../jwilm/alacritty" }
