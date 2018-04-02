@@ -14,7 +14,7 @@ use gtk;
 use gtk::prelude::*;
 
 use alacritty::{cli, gl};
-use alacritty::display::{Display, InitialSize};
+use alacritty::display::{Display, DisplayCommand, InitialSize};
 use alacritty::event_loop::{self, EventLoop, WindowNotifier};
 use alacritty::tty::{self, Pty};
 use alacritty::sync::FairMutex;
@@ -34,6 +34,7 @@ pub enum Event {
     StringInput(String),
     StrInput(&'static str),
     WindowResized(u32, u32),
+    HiDPIFactorChanged(f32),
     ChangeFontSize(i8),
     ResetFontSize,
 }
@@ -96,7 +97,7 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         let display = Display::new(
             &config,
             InitialSize::Cells(config.dimensions()),
-            2.0 // XXX gtk returns 1 at first, change isn't handled // glarea.get_scale_factor() as f32
+            glarea.get_scale_factor() as f32
         ).expect("Display::new");
 
         let terminal = Term::new(&config, display.size().to_owned());
@@ -159,7 +160,13 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
                         state.loop_notifier.notify(s.as_bytes().to_vec());
                     },
                     Event::WindowResized(w, h) => {
-                        state.display.resize_channel().send((w, h)).expect("send new size");
+                        state.display.command_channel().send(DisplayCommand::NewSize(w, h)).expect("send new size");
+                        terminal.dirty = true;
+                    },
+                    Event::HiDPIFactorChanged(dpr) => {
+                        // state.display.update_glyph_cache(&state.config, Some(fac))
+                        // ^^^ bad somehow? Is the channel really necessary
+                        state.display.command_channel().send(DisplayCommand::NewHiDPIFactor(dpr)).expect("send new dpr");
                         terminal.dirty = true;
                     },
                     Event::ChangeFontSize(delta) => {
@@ -337,7 +344,7 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
     glarea.connect_property_scale_factor_notify(clone!(state => move |glarea| {
         let mut state = state.borrow_mut();
         if let Some(ref mut state) = *state {
-            // state.event_queue.push(Event::HiDPIFactorChanged(glarea.get_scale_factor() as f32));
+            state.event_queue.push(Event::HiDPIFactorChanged(glarea.get_scale_factor() as f32));
         }
         glarea.queue_draw();
     }));
