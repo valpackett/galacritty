@@ -124,6 +124,8 @@ fn build_header_bar() -> gtk::HeaderBar {
 }
 
 fn build_ui(app: &gtk::Application) {
+    gtk::Window::set_default_icon_name("technology.unrelenting.galacritty");
+
     let window = gtk::ApplicationWindow::new(app);
 
     window.set_title("Galacritty");

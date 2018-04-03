@@ -25,4 +25,6 @@ By participating in this project you agree to follow the [Contributor Code of Co
 This is free and unencumbered software released into the public domain.  
 For more information, please refer to the `UNLICENSE` file or [unlicense.org](http://unlicense.org).
 
-(Note: dependencies are distributed under different licenses.)
+Dependencies are distributed under different licenses.
+
+The icon is based on the GNOME Adwaita theme, and is [CC-BY-SA](http://creativecommons.org/licenses/by-sa/3.0/) licensed.
