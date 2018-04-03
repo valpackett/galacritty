@@ -308,7 +308,7 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
             });
         }
         glarea.queue_draw();
-        Inhibit(false)
+        Inhibit(kv == gdk::enums::key::Tab) // prevent tab from switching focus to the top bar
     }));
 
     glarea.connect_key_release_event(clone!(im => move |_glarea, event| {
