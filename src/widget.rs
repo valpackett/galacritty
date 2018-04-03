@@ -1,8 +1,8 @@
-use std::ptr;
+use std::{fs, ptr};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::cell::RefCell;
-// use std::thread::JoinHandle;
+use std::thread::JoinHandle;
 
 use epoxy;
 use shared_library::dynamic_library::DynamicLibrary;
@@ -16,7 +16,7 @@ use gtk::prelude::*;
 use alacritty::{cli, gl};
 use alacritty::display::{Display, DisplayCommand, InitialSize};
 use alacritty::event_loop::{self, EventLoop, WindowNotifier};
-use alacritty::tty::{self, Pty};
+use alacritty::tty::{self, Pty, process_should_exit};
 use alacritty::sync::FairMutex;
 use alacritty::term::{Term, SizeInfo};
 use alacritty::config::Config;
@@ -61,13 +61,14 @@ pub struct State {
     terminal: Arc<FairMutex<Term>>,
     pty: Pty,
     loop_notifier: event_loop::Notifier,
+    io_thread: JoinHandle<(EventLoop<fs::File>, event_loop::State)>,
     pub event_queue: Vec<Event>,
 }
 
 /// Creates a GLArea that runs an Alacritty terminal emulator.
 ///
 /// Eventually should be a GObject subclass, usable outside of Rust.
-pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
+pub fn alacritty_widget(window: gtk::ApplicationWindow, header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<Option<State>>>) {
     let glarea = gtk::GLArea::new();
 
     let im = gtk::IMMulticontext::new();
@@ -113,11 +114,11 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
         );
 
         let loop_notifier = event_loop::Notifier(event_loop.channel());
-        let _io_thread = event_loop.spawn(None);
+        let io_thread = event_loop.spawn(None);
 
         *state = Some(State {
             config, display, terminal, pty,
-            loop_notifier,
+            loop_notifier, io_thread,
             event_queue: Vec::new()
         });
     }));
@@ -128,7 +129,9 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
     }));
 
     glarea.connect_render(clone!(state, im => move |_glarea, _glctx| {
-        let mut state = state.borrow_mut();
+        let state_cell = &state;
+        let mut state = state_cell.borrow_mut();
+        let mut quit = false;
         if let Some(ref mut state) = *state {
             let mut terminal = state.terminal.lock();
             for event in state.event_queue.drain(..) {
@@ -189,6 +192,15 @@ pub fn alacritty_widget(header_bar: gtk::HeaderBar) -> (gtk::GLArea, Rc<RefCell<
                 state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty]);
                 state.display.draw(terminal, &state.config, None, true);
             }
+            if process_should_exit() {
+                quit = true;
+            }
+        }
+        drop(state);
+        if quit {
+            let state = state_cell.replace(None).expect("state");
+            let _ = state.io_thread.join();
+            window.destroy();
         }
         Inhibit(false)
     }));

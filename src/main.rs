@@ -142,7 +142,7 @@ fn build_ui(app: &gtk::Application) {
     let header_bar = build_header_bar();
     window.set_titlebar(Some(&header_bar));
 
-    let (glarea, state) = widget::alacritty_widget(header_bar);
+    let (glarea, state) = widget::alacritty_widget(window.clone(), header_bar);
 
     build_actions(app.clone(), window.clone(), clipboard, glarea.clone(), state.clone());
 
