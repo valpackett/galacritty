@@ -1,8 +1,21 @@
 # Galacritty
 
-WORK IN PROGRESS
-
 A GTK terminal emulator based on the blazing fast GPU-accelerated [Alacritty](https://github.com/jwilm/alacritty) core.
+
+![Screenshot](https://unrelentingtech.s3.dualstack.eu-west-1.amazonaws.com/galacritty-0.0.0.png)
+
+## Features
+
+- native look for GTK based desktop environments
+- perfect Wayland HiDPI support
+- header bar with easily accessible font size -/+ buttons
+
+### Still TODO
+
+- settings
+- mouse support (including selection)
+- multiple windows
+- tabs
 
 ## Building
 
