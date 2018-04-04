@@ -56,8 +56,8 @@ impl WindowNotifier for Notifier {
 }
 
 pub struct State {
-    config: Config,
-    display: Display,
+    pub config: Config,
+    pub display: Display,
     terminal: Arc<FairMutex<Term>>,
     pty: Pty,
     loop_notifier: event_loop::Notifier,

@@ -1,7 +1,9 @@
+#![feature(nll)]
 extern crate gtk;
 extern crate glib;
 extern crate gio;
 extern crate gdk;
+extern crate pango;
 extern crate epoxy;
 extern crate shared_library;
 extern crate alacritty;
@@ -18,6 +20,7 @@ use gtk::prelude::*;
 
 #[macro_use]
 pub mod util; // order matters for macros
+pub mod font;
 pub mod widget;
 
 fn build_actions(app: gtk::Application,
@@ -35,7 +38,7 @@ fn build_actions(app: gtk::Application,
         about.set_authors(&[env!("CARGO_PKG_AUTHORS")]);
         about.set_comments(env!("CARGO_PKG_DESCRIPTION"));
         about.connect_response(|about, _| about.destroy());
-        about.show();
+        about.run();
     }));
     app.add_action(&about_action);
 
@@ -75,6 +78,32 @@ fn build_actions(app: gtk::Application,
     window.add_action(&font_incr_action);
     app.set_accels_for_action("win.FontIncrease", &["<Control>equal", "<Control>plus", "<Control>KP_Add"]);
 
+    let font_choose_action = SimpleAction::new("FontChoose", None);
+    font_choose_action.connect_activate(clone!(glarea, window, state => move |_, _| {
+        glarea.set_auto_render(false);
+        let mut state = state.borrow_mut();
+        if let Some(ref mut state) = *state {
+            let curf = state.config.font();
+            let dial = gtk::FontChooserDialog::new("Choose Terminal Font", Some(&window));
+            dial.set_font(&format!("{} {}", curf.normal.family, curf.size.as_f32_pts()));
+            let acc : i32 = gtk::ResponseType::Ok.into();
+            if dial.run() == acc {
+                if let Some(fam) = dial.get_font_family() {
+                    let newf = font::to_alacritty(fam, dial.get_font_size());
+                    let fontdiff = (newf.size.as_f32_pts() - curf.size.as_f32_pts()) as i8;
+                    state.config.set_font(newf);
+                    state.event_queue.push(widget::Event::ChangeFontSize(fontdiff));
+                    // force reload the glyph cache if the size didn't change
+                    state.event_queue.push(widget::Event::HiDPIFactorChanged(glarea.get_scale_factor() as f32));
+                }
+            }
+            dial.destroy();
+        }
+        glarea.set_auto_render(true);
+        glarea.queue_draw();
+    }));
+    window.add_action(&font_choose_action);
+
     let font_reset_action = SimpleAction::new("FontReset", None);
     font_reset_action.connect_activate(move |_, _| {
         let mut state = state.borrow_mut();
@@ -106,6 +135,12 @@ fn build_header_bar() -> gtk::HeaderBar {
     font_decr_btn.set_tooltip_text("Decrease font size");
     font_decr_btn.set_action_name("win.FontDecrease");
     header_bar.pack_start(&font_decr_btn);
+
+    let font_choose_btn = gtk::Button::new_from_icon_name("font-select-symbolic", gtk::IconSize::SmallToolbar.into());
+    font_choose_btn.set_can_focus(false);
+    font_choose_btn.set_tooltip_text("Choose font");
+    font_choose_btn.set_action_name("win.FontChoose");
+    header_bar.pack_start(&font_choose_btn);
 
     let font_incr_btn = gtk::Button::new_from_icon_name("zoom-in-symbolic", gtk::IconSize::SmallToolbar.into());
     font_incr_btn.set_can_focus(false);

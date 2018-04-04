@@ -15,6 +15,7 @@ env_logger = "0.5"
 glib = "0.5"
 gio = "0.4"
 gdk = "0.8"
+pango = "0.4"
 gtk = { version = "0.4", features = ["v3_16"] }
 epoxy = "0.0.4"
 shared_library = "0"
