@@ -85,6 +85,7 @@ fn build_actions(app: gtk::Application,
         if let Some(ref mut state) = *state {
             let curf = state.config.font();
             let dial = gtk::FontChooserDialog::new("Choose Terminal Font", Some(&window));
+            dial.set_preview_text("if c0de$[1337] { \"hello\".world(); /* test */ }");
             dial.set_font(&format!("{} {}", curf.normal.family, curf.size.as_f32_pts()));
             let acc : i32 = gtk::ResponseType::Ok.into();
             if dial.run() == acc {
