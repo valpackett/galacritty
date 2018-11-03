@@ -20,3 +20,6 @@ gtk = { version = "0.4", features = ["v3_16"] }
 epoxy = "0.0.4"
 shared_library = "0"
 alacritty = { path = "../../jwilm/alacritty" }
+
+[patch.crates-io]
+servo-freetype-sys = { path = "../../jwilm/alacritty/servo-freetype-proxy" }
