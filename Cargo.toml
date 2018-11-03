@@ -12,12 +12,12 @@ repository = "https://github.com/myfreeweb/galacritty"
 [dependencies]
 log = "0.4"
 env_logger = "0.5"
-glib = "0.5"
-gio = "0.4"
-gdk = "0.8"
-pango = "0.4"
-gtk = { version = "0.4", features = ["v3_16"] }
-epoxy = "0.0.4"
+glib = "0.6"
+gio = "0.5"
+gdk = "0.9"
+pango = "0.5"
+gtk = { version = "0.5", features = ["v3_16"] }
+epoxy = "0.1"
 shared_library = "0"
 alacritty = { path = "../../jwilm/alacritty" }
 
