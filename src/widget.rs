@@ -1,8 +1,9 @@
-use std::{fs, ptr};
+use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::cell::RefCell;
 use std::thread::JoinHandle;
+use std::os::unix::io::{RawFd, AsRawFd};
 
 use epoxy;
 use shared_library::dynamic_library::DynamicLibrary;
@@ -59,9 +60,9 @@ pub struct State {
     pub config: Config,
     pub display: Display,
     terminal: Arc<FairMutex<Term>>,
-    pty: Pty,
+    pty_fd: RawFd,
     loop_notifier: event_loop::Notifier,
-    io_thread: JoinHandle<(EventLoop<fs::File>, event_loop::State)>,
+    io_thread: JoinHandle<(EventLoop<Pty>, event_loop::State)>,
     pub event_queue: Vec<Event>,
 }
 
@@ -105,11 +106,12 @@ pub fn alacritty_widget(window: gtk::ApplicationWindow, header_bar: gtk::HeaderB
         let terminal = Arc::new(FairMutex::new(terminal));
 
         let pty = tty::new(&config, &options, &display.size(), None);
+        let pty_fd = pty.fd.as_raw_fd();
 
         let event_loop = EventLoop::new(
             Arc::clone(&terminal),
             Box::new(Notifier),
-            pty.reader(),
+            pty,
             options.ref_test,
         );
 
@@ -117,7 +119,7 @@ pub fn alacritty_widget(window: gtk::ApplicationWindow, header_bar: gtk::HeaderB
         let io_thread = event_loop.spawn(None);
 
         *state = Some(State {
-            config, display, terminal, pty,
+            config, display, terminal, pty_fd,
             loop_notifier, io_thread,
             event_queue: Vec::new()
         });
@@ -173,7 +175,7 @@ pub fn alacritty_widget(window: gtk::ApplicationWindow, header_bar: gtk::HeaderB
                         terminal.dirty = true;
                     },
                     Event::ChangeFontSize(delta) => {
-                        terminal.change_font_size(delta);
+                        terminal.change_font_size(delta.into());
                     },
                     Event::ResetFontSize => {
                         terminal.reset_font_size();
@@ -189,8 +191,9 @@ pub fn alacritty_widget(window: gtk::ApplicationWindow, header_bar: gtk::HeaderB
                 im.set_cursor_location(&gtk::Rectangle {
                     x: x.into(), y: y.into(), width: cell_width as i32, height: cell_height as i32
                 });
-                state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty]);
-                state.display.draw(terminal, &state.config, None, true);
+                state.display.handle_resize(&mut terminal, &state.config, &mut [&mut state.pty_fd]);
+                drop(terminal); // mutex unlock
+                state.display.draw(&state.terminal, &state.config, true);
             }
             if process_should_exit() {
                 quit = true;
