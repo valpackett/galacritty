@@ -1,0 +1,3 @@
+[submodule "alacritty"]
+	path = alacritty
+	url = https://github.com/myfreeweb/alacritty
