@@ -19,7 +19,7 @@ pango = "0.5"
 gtk = { version = "0.5", features = ["v3_16"] }
 epoxy = "0.1"
 shared_library = "0"
-alacritty = { path = "../../jwilm/alacritty" }
+alacritty = { git = "https://github.com/myfreeweb/alacritty.git", branch = "alacritty-split-new" }
 
 [patch.crates-io]
-servo-freetype-sys = { path = "../../jwilm/alacritty/servo-freetype-proxy" }
+servo-freetype-sys = { git = "https://github.com/myfreeweb/alacritty.git", branch = "alacritty-split-new" }

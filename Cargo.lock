@@ -23,20 +23,21 @@ dependencies = [
 [[package]]
 name = "alacritty"
 version = "0.2.1"
+source = "git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new#d8a8fb86be2257877a1219e820b690cbc5a38fde"
 dependencies = [
  "arraydeque 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "copypasta 0.0.1",
+ "copypasta 0.0.1 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)",
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "dunce 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "embed-resource 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "errno 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "font 0.1.0",
+ "font 0.1.0 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)",
  "gl_generator 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -61,7 +62,7 @@ dependencies = [
  "vte 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "winpty 0.1.0",
+ "winpty 0.1.0 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)",
  "x11-dl 2.18.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "xdg 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -392,6 +393,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "copypasta"
 version = "0.0.1"
+source = "git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new#d8a8fb86be2257877a1219e820b690cbc5a38fde"
 dependencies = [
  "clipboard 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -745,6 +747,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "font"
 version = "0.1.0"
+source = "git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new#d8a8fb86be2257877a1219e820b690cbc5a38fde"
 dependencies = [
  "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation-sys 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -862,7 +865,7 @@ dependencies = [
 name = "galacritty"
 version = "0.0.0"
 dependencies = [
- "alacritty 0.2.1",
+ "alacritty 0.2.1 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)",
  "env_logger 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "epoxy 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2203,12 +2206,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "expat-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-freetype-sys 4.0.3",
+ "servo-freetype-sys 4.0.3 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)",
 ]
 
 [[package]]
 name = "servo-freetype-sys"
 version = "4.0.3"
+source = "git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new#d8a8fb86be2257877a1219e820b690cbc5a38fde"
 dependencies = [
  "freetype-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2860,6 +2864,7 @@ dependencies = [
 [[package]]
 name = "winpty"
 version = "0.1.0"
+source = "git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new#d8a8fb86be2257877a1219e820b690cbc5a38fde"
 dependencies = [
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "widestring 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2959,6 +2964,7 @@ dependencies = [
 "checksum adler32 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7e522997b529f05601e05166c07ed17789691f562762c7f3b987263d2dedee5c"
 "checksum advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e06588080cb19d0acb6739808aafa5f26bfb2ca015b2b6370028b44cf7cb8a9a"
 "checksum aho-corasick 0.6.9 (registry+https://github.com/rust-lang/crates.io-index)" = "1e9a933f4e58658d7b12defcf96dc5c720f20832deebe3e0a19efd3b6aaeeb9e"
+"checksum alacritty 0.2.1 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)" = "<none>"
 "checksum android_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "000444226fcff248f2bc4c7625be32c63caccfecc2723a2b9f78a7487a49c407"
 "checksum ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ee49baf6cb617b853aa8d93bf420db2383fab46d314482ca2803b40d5fde979b"
 "checksum approx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "08abcc3b4e9339e33a3d0a5ed15d84a687350c05689d825e0f6655eef9e76a94"
@@ -2997,6 +3003,7 @@ dependencies = [
 "checksum cocoa 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b44bd25bd275e9d74a5dff8ca55f2fb66c9ad5e12170d58697701df21a56e0e"
 "checksum color_quant 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0dbbb57365263e881e805dc77d94697c9118fd94d8da011240555aa7b23445bd"
 "checksum constant_time_eq 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8ff012e225ce166d4422e0e78419d901719760f62ae2b7969ca6b564d1b54a9e"
+"checksum copypasta 0.0.1 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)" = "<none>"
 "checksum core-foundation 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "25bfd746d203017f7d5cbd31ee5d8e17f94b6521c7af77ece6c9e4b2d4b16c67"
 "checksum core-foundation 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "286e0b41c3a20da26536c6000a280585d519fd07b3956b43aed8a79e9edce980"
 "checksum core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "58667b9a618a37ea8c4c4cb5298703e5dfadcd3698c79f54fc43e6a2e94733ea"
@@ -3036,6 +3043,7 @@ dependencies = [
 "checksum filetime 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "da4b9849e77b13195302c174324b5ba73eec9b236b24c221a61000daefb95c5f"
 "checksum flate2 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3b0c7353385f92079524de3b7116cf99d73947c08a7472774e9b3b04bff3b901"
 "checksum fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
+"checksum font 0.1.0 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)" = "<none>"
 "checksum font-loader 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2fbd86bafc9e14ab7076e084d31eed4633120f910d0c42a017e5382aac89937f"
 "checksum foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
 "checksum foreign-types-shared 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
@@ -3190,6 +3198,7 @@ dependencies = [
 "checksum serde_yaml 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a2054770c85c7f026ad772e31ff631e65e378154ee20e85d0ada8c6ed053e63a"
 "checksum servo-fontconfig 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a088f8d775a5c5314aae09bd77340bc9c67d72b9a45258be34c83548b4814cd9"
 "checksum servo-fontconfig-sys 4.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "b46d201addcfbd25c1798ad1281d98c40743824e0b0f1e611bd3d5d0d31a7b8d"
+"checksum servo-freetype-sys 4.0.3 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)" = "<none>"
 "checksum shared_library 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
 "checksum siphasher 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0b8de496cf83d4ed58b6be86c3a275b8602f6ffe98d3024a869e124147a9a3ac"
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
@@ -3262,6 +3271,7 @@ dependencies = [
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 "checksum wincolor 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "561ed901ae465d6185fa7864d63fbd5720d0ef718366c9a4dc83cf6170d7e9ba"
 "checksum winit 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4bb6ea35de8bd722201914b28a33d503ee45b09fcf85fc4bbf574845e41f79e2"
+"checksum winpty 0.1.0 (git+https://github.com/myfreeweb/alacritty.git?branch=alacritty-split-new)" = "<none>"
 "checksum winpty-sys 1.1.0 (git+https://github.com/zacps/winpty?branch=rust)" = "<none>"
 "checksum winreg 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbf285379f20d7f26abd990d9a566be9d31ab7a9d335299baaa1f0604f5f96af"
 "checksum ws2_32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"

@@ -19,12 +19,6 @@ A GTK terminal emulator based on the blazing fast GPU-accelerated [Alacritty](ht
 
 ## Building
 
-Right now, you first need to clone
-
-[myfreeweb/alacritty#alacritty-split-new](https://github.com/myfreeweb/alacritty/tree/alacritty-split-new) to `../../jwilm/alacritty`
-
-(relative to this project's checkout)
-
 You need to have GTK >= 3.16 and [`libepoxy`](https://github.com/anholt/libepoxy) installed on your system.
 
 ## Contributing
