@@ -1,12 +1,8 @@
-#![feature(nll)]
-extern crate gtk;
-extern crate glib;
-extern crate gio;
-extern crate gdk;
-extern crate pango;
-extern crate epoxy;
-extern crate shared_library;
-extern crate alacritty;
+use gtk;
+use gio;
+use gdk;
+
+use alacritty;
 #[macro_use]
 extern crate log;
 
