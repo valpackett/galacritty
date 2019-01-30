@@ -8,6 +8,7 @@ license = "Unlicense"
 readme = "README.md"
 homepage = "https://github.com/myfreeweb/galacritty"
 repository = "https://github.com/myfreeweb/galacritty"
+edition = "2018"
 
 [dependencies]
 log = "0.4"
